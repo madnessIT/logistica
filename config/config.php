@@ -14,8 +14,6 @@ define('DB_CHARSET', 'utf8mb4');
 define('APP_NAME', 'GEMZ Bolivia — Sistema de Cotizaciones');
 define('APP_URL',  'https://cotizaciones.gemz.com.bo');
 
-// Tipo de cambio boliviano (actualizar mensualmente)
-define('TC_USD_BS', 6.96);
 
 // Parámetros logísticos
 define('PESO_MIN_WM_KG',    1000);    // Por encima de este peso/volumen aplica W/M

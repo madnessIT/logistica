@@ -192,3 +192,15 @@ CREATE TABLE sesiones (
   PRIMARY KEY (token),
   CONSTRAINT fk_ses_user FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+-- -----------------------------------------------
+-- CONFIGURACIONES
+-- -----------------------------------------------
+CREATE TABLE configuraciones (
+  clave           VARCHAR(50)    NOT NULL,
+  valor           VARCHAR(255)   NOT NULL,
+  PRIMARY KEY (clave)
+) ENGINE=InnoDB;
+
+INSERT INTO configuraciones (clave, valor) VALUES
+  ('tc_usd_bs', '6.96');

@@ -106,6 +106,9 @@ body{background:#f0f2f5;font-family:'Segoe UI',sans-serif}
     <h4>📋 <?= Auth::isOperador() ? 'Embarques en Seguimiento' : 'Listado de Cotizaciones' ?></h4>
     <div style="font-size:12px;color:#888">
       TC: <strong>USD 1 = Bs. <?= TC_USD_BS ?></strong>
+      <?php if (Auth::isAdmin() || Auth::isOperador()): ?>
+      <a href="#" onclick="mostrarEditarTC(); return false;" class="text-decoration-none ms-1" title="Editar tipo de cambio">✏️</a>
+      <?php endif; ?>
     </div>
   </div>
 
@@ -190,5 +193,52 @@ body{background:#f0f2f5;font-family:'Segoe UI',sans-serif}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<?php if (Auth::isAdmin() || Auth::isOperador()): ?>
+<script>
+function mostrarEditarTC() {
+  new bootstrap.Modal(document.getElementById('modalTC')).show();
+}
+async function guardarTC() {
+  const tc = parseFloat(document.getElementById('input_tc').value);
+  if (!tc || tc <= 0) {
+    alert('Por favor introduce un tipo de cambio válido.');
+    return;
+  }
+  const res = await fetch('api_tc.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tc: tc, csrf_token: '<?= Auth::csrfToken() ?>' })
+  });
+  const data = await res.json();
+  if (data.ok) {
+    location.reload();
+  } else {
+    alert('Error: ' + data.error);
+  }
+}
+</script>
+
+<!-- Modal TC -->
+<div class="modal fade" id="modalTC" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Actualizar TC</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">TC (USD 1 = Bs. ?)</label>
+          <input type="number" step="0.01" min="0.01" id="input_tc" class="form-control" value="<?= TC_USD_BS ?>">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="guardarTC()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
 </body>
 </html>
