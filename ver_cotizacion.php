@@ -111,6 +111,9 @@ body{background:#f0f2f5;font-family:'Segoe UI',sans-serif}
   <div class="topbar">
     <h4>📋 Detalle de Cotización: <?= htmlspecialchars($cot['numero_cotizacion']) ?></h4>
     <div class="d-flex gap-2">
+      <?php if ($cot['estado'] === 'Borrador' && (Auth::isAdmin() || (int)$cot['vendedor_id'] === $user['id'])): ?>
+      <a href="formulario.php?id=<?= $cot['id'] ?>" class="btn btn-primary btn-sm">✏ Editar Borrador</a>
+      <?php endif; ?>
       <?php if (!Auth::isCliente()): ?>
       <a href="pdf_cotizacion.php?id=<?= $cot['id'] ?>" class="btn btn-outline-secondary btn-sm" target="_blank">🖨 Versión PDF</a>
       <?php endif; ?>

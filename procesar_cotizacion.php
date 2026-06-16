@@ -67,6 +67,7 @@ $input['flash_point']        = (float) ($input['flash_point'] ?? 0);
 $input['tiene_marcas']       = filter_var($input['tiene_marcas']     ?? true,  FILTER_VALIDATE_BOOLEAN);
 $input['viene_paletizado']   = filter_var($input['viene_paletizado'] ?? true,  FILTER_VALIDATE_BOOLEAN);
 $input['es_apilable']        = filter_var($input['es_apilable']      ?? true,  FILTER_VALIDATE_BOOLEAN);
+$input['cotizacion_id']      = isset($input['cotizacion_id']) ? (int) $input['cotizacion_id'] : null;
 
 // Acción
 $accion = $input['accion'] ?? 'calcular';
@@ -81,7 +82,11 @@ try {
         echo json_encode($resultado);
 
     } elseif ($accion === 'guardar') {
-        $resultado = $controller->crear($input);
+        if (!empty($input['cotizacion_id'])) {
+            $resultado = $controller->actualizar($input['cotizacion_id'], $input);
+        } else {
+            $resultado = $controller->crear($input);
+        }
         echo json_encode($resultado);
 
     } else {

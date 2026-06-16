@@ -149,8 +149,8 @@ body{font-family:Arial,'Helvetica Neue',sans-serif;font-size:12px;color:#1a1a1a;
           <td>LCL/LCL</td>
           <td><?= htmlspecialchars($cot['origen']) ?></td>
           <td><?= htmlspecialchars($cot['destino']) ?></td>
-          <td><?= $d['cantidad']!=1 ? number_format($d['cantidad'],2).' W/M' : '' ?></td>
-          <td class="right">$<?= number_format($d['costo_calculado'],2) ?></td>
+          <td><?= (float)$d['cantidad']!=1 ? number_format((float)$d['cantidad'],2).' W/M' : '' ?></td>
+          <td class="right">$<?= number_format((float)$d['costo_calculado'],2) ?></td>
         </tr>
         <?php endforeach; ?>
         <tr class="total-row">
@@ -180,7 +180,7 @@ body{font-family:Arial,'Helvetica Neue',sans-serif;font-size:12px;color:#1a1a1a;
           <td><?= $i++ ?></td>
           <td><?= htmlspecialchars($d['concepto']) ?></td>
           <td colspan="4" style="color:#888;font-size:10.5px">Costo local Bolivia (TC: <?= TC_USD_BS ?>)</td>
-          <td class="right">Bs. <?= number_format($d['costo_calculado'],2) ?></td>
+          <td class="right">Bs. <?= number_format((float)$d['costo_calculado'],2) ?></td>
         </tr>
         <?php endforeach; ?>
         <tr class="total-row">
@@ -200,7 +200,7 @@ body{font-family:Arial,'Helvetica Neue',sans-serif;font-size:12px;color:#1a1a1a;
         <?php foreach($recargos as $r): ?>
         <tr class="recargo-row">
           <td colspan="6"><?= htmlspecialchars($r['concepto']) ?></td>
-          <td class="right"><?= $r['moneda']==='USD' ? '$'.number_format($r['costo_calculado'],2) : 'Bs. '.number_format($r['costo_calculado'],2) ?></td>
+          <td class="right"><?= $r['moneda']==='USD' ? '$'.number_format((float)$r['costo_calculado'],2) : 'Bs. '.number_format((float)$r['costo_calculado'],2) ?></td>
         </tr>
         <?php endforeach; ?>
       </tbody>

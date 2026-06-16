@@ -201,6 +201,116 @@ class CotizacionController
     }
 
     // --------------------------------------------------------
+    // ACTUALIZAR cotización (Vendedor / Admin)
+    // --------------------------------------------------------
+    public function actualizar(int $id, array $input): array
+    {
+        Auth::checkRole([ROL_ADMIN, ROL_VENDEDOR]);
+
+        // Obtener la cotización actual
+        $stmt = $this->db->prepare("SELECT vendedor_id, estado, numero_cotizacion FROM cotizaciones WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        $cot = $stmt->fetch();
+
+        if (!$cot) {
+            return ['ok' => false, 'error' => 'Cotización no encontrada.'];
+        }
+
+        // Validar que esté en Borrador
+        if ($cot['estado'] !== 'Borrador') {
+            return ['ok' => false, 'error' => 'Solo se pueden modificar cotizaciones en estado Borrador.'];
+        }
+
+        // Validar que sea el vendedor dueño (o Admin)
+        $user = Auth::user();
+        if (!Auth::isAdmin() && (int)$cot['vendedor_id'] !== $user['id']) {
+            return ['ok' => false, 'error' => 'No tienes permisos para modificar esta cotización.'];
+        }
+
+        // Calcular la nueva cotización
+        $resultado = $this->motor->calcular($input);
+        if (!$resultado['ok']) {
+            return $resultado;
+        }
+
+        try {
+            $this->db->beginTransaction();
+
+            $sql = "UPDATE cotizaciones SET
+                        cliente_id = :cli,
+                        tipo_carga = :tcarga,
+                        servicio = :serv,
+                        origen = :orig,
+                        destino = :dest,
+                        peso_kg = :peso,
+                        volumen_m3 = :vol,
+                        wm_aplicado = :wm,
+                        valor_mercaderia = :vmerc,
+                        tiene_marcas = :marcas,
+                        viene_paletizado = :palet,
+                        es_apilable = :apil,
+                        total_usd = :tusd,
+                        total_bs = :tbs
+                    WHERE id = :id";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':cli'   => (int) $input['cliente_id'],
+                ':tcarga'=> $input['tipo_carga']  ?? 'Mercadería General',
+                ':serv'  => $input['servicio']    ?? 'LCL',
+                ':orig'  => $input['origen']      ?? '',
+                ':dest'  => $input['destino']     ?? '',
+                ':peso'  => $resultado['wm'] > 0 ? (float)($input['peso_kg'] ?? 0) : 0,
+                ':vol'   => (float) ($input['volumen_m3'] ?? 0),
+                ':wm'    => $resultado['wm'],
+                ':vmerc' => (float) ($input['valor_mercaderia'] ?? 0),
+                ':marcas'=> (int) ($input['tiene_marcas']     ?? 1),
+                ':palet' => (int) ($input['viene_paletizado'] ?? 1),
+                ':apil'  => (int) ($input['es_apilable']      ?? 1),
+                ':tusd'  => $resultado['total_usd'],
+                ':tbs'   => $resultado['total_bs'],
+                ':id'    => $id,
+            ]);
+
+            // Eliminar detalles anteriores
+            $this->db->prepare("DELETE FROM detalles_cotizacion WHERE cotizacion_id = :id")
+                     ->execute([':id' => $id]);
+
+            // Insertar nuevos detalles
+            $sqlDet = "INSERT INTO detalles_cotizacion
+                       (cotizacion_id, orden, concepto, cantidad, costo_unitario, costo_calculado, moneda, es_recargo)
+                       VALUES (:cid, :ord, :conc, :cant, :cunit, :ccalc, :mon, :rec)";
+            $stDet  = $this->db->prepare($sqlDet);
+            foreach ($resultado['detalles'] as $i => $d) {
+                $stDet->execute([
+                    ':cid'   => $id,
+                    ':ord'   => $i + 1,
+                    ':conc'  => $d['concepto'],
+                    ':cant'  => $d['cantidad'],
+                    ':cunit' => $d['costo_unitario'],
+                    ':ccalc' => $d['costo_calculado'],
+                    ':mon'   => $d['moneda'],
+                    ':rec'   => (int) $d['es_recargo'],
+                ]);
+            }
+
+            // Log de modificación
+            $this->logEstado($id, 'Borrador', 'Borrador', 'Cotización modificada', $user['id']);
+
+            $this->db->commit();
+
+            return array_merge($resultado, [
+                'cotizacion_id'    => $id,
+                'numero_cotizacion'=> $cot['numero_cotizacion'],
+            ]);
+
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+            return ['ok' => false, 'error' => 'Error al guardar los cambios: ' . $e->getMessage()];
+        }
+    }
+
+    // --------------------------------------------------------
     // ACTUALIZAR ESTADO (Operador / Admin)
     // --------------------------------------------------------
     public function actualizarEstado(int $id, string $nuevoEstado, string $nota = ''): bool

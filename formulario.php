@@ -24,6 +24,37 @@ if (Auth::isAdmin()) {
     $clientes = $stmt->fetchAll();
 }
 
+$editCot = null;
+$editLargo = 0.0;
+$editPesoBulto = 0.0;
+$editAltura = 0.0;
+
+if (isset($_GET['id'])) {
+    $editId = (int)$_GET['id'];
+    $controller = new CotizacionController();
+    $editCot = $controller->obtener($editId);
+    if ($editCot) {
+        // Validar que esté en Borrador y que sea el vendedor asignado (o Admin)
+        if ($editCot['estado'] !== 'Borrador') {
+            die('Solo se pueden modificar cotizaciones en estado Borrador.');
+        }
+        if (!Auth::isAdmin() && (int)$editCot['vendedor_id'] !== $user['id']) {
+            die('No tienes permisos para modificar esta cotización.');
+        }
+        // Extraer recargos de los detalles si existen
+        foreach ($editCot['detalles'] as $det) {
+            if (stripos($det['concepto'], 'Extra Largo') !== false) {
+                if (preg_match('/\+(\d+(\.\d+)?)\s+pies/', $det['concepto'], $matches)) {
+                    $editLargo = 12.0 + (float)$matches[1];
+                }
+            }
+            if (stripos($det['concepto'], 'OWS Sobrepeso') !== false) {
+                $editPesoBulto = 5001.0;
+            }
+        }
+    }
+}
+
 $csrf = Auth::csrfToken();
 ?>
 <!DOCTYPE html>
@@ -123,13 +154,16 @@ body{background:#f0f2f5;font-family:'Segoe UI',sans-serif}
 <!-- MAIN -->
 <div class="main">
   <div class="topbar">
-    <h4 style="margin:0;font-size:16px;font-weight:600">➕ Nueva Cotización LCL</h4>
+    <h4 style="margin:0;font-size:16px;font-weight:600"><?= isset($editCot) ? '✏ Editar Cotización: ' . htmlspecialchars($editCot['numero_cotizacion']) : '➕ Nueva Cotización LCL' ?></h4>
     <a href="dashboard.php" class="btn btn-outline-secondary btn-sm">← Volver</a>
   </div>
 
   <div class="form-section">
   <form id="form-cotizacion" novalidate>
     <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+    <?php if (isset($editCot)): ?>
+      <input type="hidden" name="cotizacion_id" value="<?= $editCot['id'] ?>">
+    <?php endif; ?>
 
     <!-- ── CLIENTE ── -->
     <div class="card mb-3">
@@ -141,52 +175,60 @@ body{background:#f0f2f5;font-family:'Segoe UI',sans-serif}
             <select name="cliente_id" id="cliente_id" class="form-select" required>
               <option value="">— Seleccionar cliente —</option>
               <?php foreach ($clientes as $c): ?>
-              <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['nombre_razon']) ?> <?= $c['nit_ci'] ? '('.$c['nit_ci'].')' : '' ?></option>
+              <option value="<?= $c['id'] ?>" <?= (isset($editCot) && $editCot['cliente_id'] == $c['id']) ? 'selected' : '' ?>><?= htmlspecialchars($c['nombre_razon']) ?> <?= $c['nit_ci'] ? '('.$c['nit_ci'].')' : '' ?></option>
               <?php endforeach; ?>
             </select>
           </div>
           <div class="col-md-3">
             <label class="form-label">Tipo de carga *</label>
             <select name="tipo_carga" class="form-select">
-              <option>Mercadería General</option>
-              <option>Electrónicos</option>
-              <option>Maquinaria</option>
-              <option>Textil</option>
-              <option>Alimentos</option>
-              <option>Repuestos</option>
+              <?php
+              $tipos = ['Mercadería General', 'Electrónicos', 'Maquinaria', 'Textil', 'Alimentos', 'Repuestos'];
+              $selectedTipo = $editCot['tipo_carga'] ?? 'Mercadería General';
+              foreach ($tipos as $t) {
+                  $sel = ($selectedTipo === $t) ? 'selected' : '';
+                  echo "<option {$sel}>{$t}</option>";
+              }
+              ?>
             </select>
           </div>
           <div class="col-md-3">
             <label class="form-label">Servicio</label>
             <select name="servicio" class="form-select">
-              <option value="LCL">Marítimo LCL</option>
-              <option value="FCL20">FCL 20'</option>
-              <option value="FCL40">FCL 40'</option>
+              <option value="LCL" <?= (isset($editCot) && $editCot['servicio'] === 'LCL') ? 'selected' : '' ?>>Marítimo LCL</option>
+              <option value="FCL20" <?= (isset($editCot) && $editCot['servicio'] === 'FCL20') ? 'selected' : '' ?>>FCL 20'</option>
+              <option value="FCL40" <?= (isset($editCot) && $editCot['servicio'] === 'FCL40') ? 'selected' : '' ?>>FCL 40'</option>
             </select>
           </div>
           <div class="col-md-6">
             <label class="form-label">Puerto / Ciudad Origen *</label>
             <select name="origen" id="sel_origen" class="form-select" onchange="checkOrigen()">
-              <option value="Shanghai, China">Shanghai, China</option>
-              <option value="Shenzhen, China">Shenzhen, China</option>
-              <option value="Guangzhou, China">Guangzhou, China</option>
-              <option value="Ningbo, China">Ningbo, China</option>
-              <option value="Canadá">Canadá</option>
-              <option value="Miami, USA">Miami, USA</option>
-              <option value="Los Ángeles, USA">Los Ángeles, USA</option>
+              <?php
+              $origenes = ['Shanghai, China', 'Shenzhen, China', 'Guangzhou, China', 'Ningbo, China', 'Canadá', 'Miami, USA', 'Los Ángeles, USA'];
+              $selectedOrigen = $editCot['origen'] ?? 'Shanghai, China';
+              foreach ($origenes as $o) {
+                  $sel = (strcasecmp($selectedOrigen, $o) === 0 || stripos($selectedOrigen, explode(',', $o)[0]) !== false) ? 'selected' : '';
+                  echo "<option value=\"{$o}\" {$sel}>{$o}</option>";
+              }
+              ?>
             </select>
           </div>
           <div class="col-md-3">
             <label class="form-label">Destino Final</label>
             <select name="destino" class="form-select">
-              <option value="Cochabamba, Bolivia">Cochabamba, Bolivia</option>
-              <option value="La Paz, Bolivia">La Paz, Bolivia</option>
-              <option value="Santa Cruz, Bolivia">Santa Cruz, Bolivia</option>
+              <?php
+              $destinos = ['Cochabamba, Bolivia', 'La Paz, Bolivia', 'Santa Cruz, Bolivia'];
+              $selectedDestino = $editCot['destino'] ?? 'Cochabamba, Bolivia';
+              foreach ($destinos as $d) {
+                  $sel = (strcasecmp($selectedDestino, $d) === 0 || stripos($selectedDestino, explode(',', $d)[0]) !== false) ? 'selected' : '';
+                  echo "<option value=\"{$d}\" {$sel}>{$d}</option>";
+              }
+              ?>
             </select>
           </div>
           <div class="col-md-3">
             <label class="form-label">Validez de Oferta</label>
-            <input type="date" name="validez_oferta" id="validez_oferta" class="form-control">
+            <input type="date" name="validez_oferta" id="validez_oferta" class="form-control" value="<?= isset($editCot) ? htmlspecialchars($editCot['validez_oferta']) : '' ?>">
           </div>
         </div>
       </div>
@@ -199,11 +241,11 @@ body{background:#f0f2f5;font-family:'Segoe UI',sans-serif}
         <div class="row g-3">
           <div class="col-md-3">
             <label class="form-label">Peso total (kg) *</label>
-            <input type="number" name="peso_kg" id="peso_kg" class="form-control" placeholder="Ej. 1850" min="0" step="0.01" required oninput="calcWM()">
+            <input type="number" name="peso_kg" id="peso_kg" class="form-control" placeholder="Ej. 1850" min="0" step="0.01" required oninput="calcWM()" value="<?= isset($editCot) ? (float)$editCot['peso_kg'] : '' ?>">
           </div>
           <div class="col-md-3">
             <label class="form-label">Volumen total (m³) *</label>
-            <input type="number" name="volumen_m3" id="volumen_m3" class="form-control" placeholder="Ej. 18.44" min="0" step="0.01" required oninput="calcWM()">
+            <input type="number" name="volumen_m3" id="volumen_m3" class="form-control" placeholder="Ej. 18.44" min="0" step="0.01" required oninput="calcWM()" value="<?= isset($editCot) ? (float)$editCot['volumen_m3'] : '' ?>">
           </div>
           <div class="col-md-3">
             <label class="form-label">N° de bultos</label>
@@ -211,7 +253,7 @@ body{background:#f0f2f5;font-family:'Segoe UI',sans-serif}
           </div>
           <div class="col-md-3">
             <label class="form-label">Valor mercadería (USD)</label>
-            <input type="number" name="valor_mercaderia" class="form-control" placeholder="Ej. 15000" min="0" step="0.01">
+            <input type="number" name="valor_mercaderia" class="form-control" placeholder="Ej. 15000" min="0" step="0.01" value="<?= isset($editCot) ? (float)$editCot['valor_mercaderia'] : '' ?>">
           </div>
         </div>
         <!-- W/M Indicator -->
@@ -228,12 +270,12 @@ body{background:#f0f2f5;font-family:'Segoe UI',sans-serif}
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label">Largo máx. por pieza (pies)</label>
-            <input type="number" name="largo_pies" id="largo_pies" class="form-control" placeholder="Ej. 10" step="0.1" min="0" oninput="checkEspeciales()">
+            <input type="number" name="largo_pies" id="largo_pies" class="form-control" placeholder="Ej. 10" step="0.1" min="0" oninput="checkEspeciales()" value="<?= $editLargo > 0 ? $editLargo : '' ?>">
             <div class="form-text">Extra largo si > 12 pies: +USD 12/pie</div>
           </div>
           <div class="col-md-4">
             <label class="form-label">Peso mayor bulto individual (lbs)</label>
-            <input type="number" name="peso_bulto_lbs" id="peso_bulto_lbs" class="form-control" placeholder="Ej. 200" min="0" oninput="checkEspeciales()">
+            <input type="number" name="peso_bulto_lbs" id="peso_bulto_lbs" class="form-control" placeholder="Ej. 200" min="0" oninput="checkEspeciales()" value="<?= $editPesoBulto > 0 ? $editPesoBulto : '' ?>">
             <div class="form-text">OWS si > 5,000 lbs: +USD 470</div>
           </div>
           <div class="col-md-4">
@@ -281,19 +323,19 @@ body{background:#f0f2f5;font-family:'Segoe UI',sans-serif}
         <div class="row g-2">
           <div class="col-md-6">
             <label class="check-card d-flex align-items-start gap-2">
-              <input type="checkbox" name="tiene_marcas" id="chk_marcas" value="1" checked class="mt-1" onchange="checkCondicionales()">
-              <div><div class="check-title">✔ La carga cuenta con marcas de origen</div><div class="check-desc">Cajas y embalajes identificados con marcas y números desde origen.<br>Sin marcas → USD 300 aclaración al manifiesto (TPA, ASPB, Aduana)</div></div>
+              <input type="checkbox" name="tiene_marcas" id="chk_marcas" value="1" <?= (!isset($editCot) || $editCot['tiene_marcas'] == 1) ? 'checked' : '' ?> class="mt-1" onchange="checkCondicionales()">
+              <div><div class="check-title">✔ La carga cuenta con marcas de origen</div><div class="check-desc">Cajas y embalajes identificados con marcas and números desde origen.<br>Sin marcas → USD 300 aclaración al manifiesto (TPA, ASPB, Aduana)</div></div>
             </label>
           </div>
           <div class="col-md-6">
             <label class="check-card d-flex align-items-start gap-2">
-              <input type="checkbox" name="viene_paletizado" id="chk_paletizado" value="1" checked class="mt-1" onchange="checkCondicionales()">
+              <input type="checkbox" name="viene_paletizado" id="chk_paletizado" value="1" <?= (!isset($editCot) || $editCot['viene_paletizado'] == 1) ? 'checked' : '' ?> class="mt-1" onchange="checkCondicionales()">
               <div><div class="check-title">✔ La carga viene paletizada</div><div class="check-desc">Ley 20001 Chile — Cargas >25 kg deben venir en pallets.<br>Sin paletizar → costo de paletizaje obligatorio en puerto.</div></div>
             </label>
           </div>
           <div class="col-md-6">
             <label class="check-card d-flex align-items-start gap-2">
-              <input type="checkbox" name="es_apilable" id="chk_apilable" value="1" checked class="mt-1">
+              <input type="checkbox" name="es_apilable" id="chk_apilable" value="1" <?= (!isset($editCot) || $editCot['es_apilable'] == 1) ? 'checked' : '' ?> class="mt-1">
               <div><div class="check-title">✔ La carga es apilable</div><div class="check-desc">Permite manejo estándar LCL con manipuleos y trasbordos.</div></div>
             </label>
           </div>
@@ -647,6 +689,14 @@ function limpiarResultado(){
   document.getElementById('alertas-especiales').innerHTML='';
   document.getElementById('alertas-condicionales').innerHTML='';
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('peso_kg').value || document.getElementById('volumen_m3').value) {
+    calcWM();
+    checkEspeciales();
+    checkCondicionales();
+  }
+});
 </script>
 </body>
 </html>
