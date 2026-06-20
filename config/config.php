@@ -5,13 +5,21 @@ declare(strict_types=1);
 // config/config.php — Configuración global GEMZ Bolivia
 // ============================================================
 
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'gemz_cotizaciones');
-define('DB_USER', 'root');
-define('DB_PASS', 'M4nd4m4s');
+// Detectar si estamos ejecutando localmente o en el hosting de producción
+if (in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1'])) {
+    // Conexión externa remota desde tu PC local a la BD del hosting
+    define('DB_HOST', 'mysql.gb.stackcp.com:43839');
+} else {
+    // Conexión interna desde el servidor del hosting (fuerza TCP/IP)
+    define('DB_HOST', '127.0.0.1');
+}
+
+define('DB_NAME', 'gemz_cotizaciones-3132353cb5');
+define('DB_USER', 'gemz_user');
+define('DB_PASS', 'f%J9X-0DQtU@');
 define('DB_CHARSET', 'utf8mb4');
 
-define('APP_NAME', 'GEMZ Bolivia — Sistema de Cotizaciones');
+define('APP_NAME', 'GEMZ Bolivia - Sistema de Cotizaciones');
 define('APP_URL',  'https://cotizaciones.gemz.com.bo');
 
 

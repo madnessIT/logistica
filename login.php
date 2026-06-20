@@ -14,12 +14,16 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email    = trim($_POST['email']    ?? '');
     $password = trim($_POST['password'] ?? '');
-    $user     = Auth::login($email, $password);
-    if ($user) {
-        header('Location: dashboard.php');
-        exit;
+    try {
+        $user = Auth::login($email, $password);
+        if ($user) {
+            header('Location: dashboard.php');
+            exit;
+        }
+        $error = 'Credenciales inválidas o cuenta inactiva.';
+    } catch (Throwable $e) {
+        $error = 'Error de Base de Datos: ' . $e->getMessage();
     }
-    $error = 'Credenciales inválidas o cuenta inactiva.';
 }
 ?>
 <!DOCTYPE html>

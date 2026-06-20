@@ -1,0 +1,27 @@
+# ============================================================
+# .htaccess — Configuración para Apache (XAMPP / Producción)
+# ============================================================
+
+# Desactivar el listado de archivos y directorios
+Options -Indexes
+
+# Establecer la página de inicio por defecto
+DirectoryIndex login.php
+
+# Prevenir acceso a archivos sensibles del sistema
+<FilesMatch "^\.(git|env|htaccess|gitignore)|(composer\.json|package\.json|README\.md|01_schema\.sql)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Cabeceras de seguridad básicas
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
