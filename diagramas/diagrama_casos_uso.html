@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagrama de Casos de Uso del Sistema — GEMZ</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 30px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #6366f1;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        h1 {
+            color: #6366f1;
+            margin: 0;
+        }
+        p {
+            color: #666;
+            margin: 5px 0 0 0;
+        }
+        .btn-print {
+            background-color: #003087;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.2s;
+        }
+        .btn-print:hover {
+            background-color: #002060;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: center;
+        }
+        .mermaid {
+            width: 100%;
+            max-width: 1000px;
+        }
+        @media print {
+            body {
+                margin: 0;
+                background-color: #fff;
+            }
+            .header, .btn-print {
+                display: none;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>Diagrama de Casos de Uso (UML)</h1>
+            <p>Interacciones y responsabilidades de los Actores con el Sistema de Cotizaciones GEMZ</p>
+        </div>
+        <button class="btn-print" onclick="window.print()">Imprimir / Guardar como PDF</button>
+    </div>
+    <div class="container">
+        <div class="mermaid">
+flowchart LR
+    %% Actores
+    subgraph Actores
+        Admin((Administrador))
+        Vendedor((Vendedor))
+        Operador((Operador))
+        Cliente((Cliente))
+    end
+
+    %% Límite del Sistema
+    subgraph Sistema ["Límite del Sistema — GEMZ"]
+        %% Casos de Uso Comunes
+        UC_Login([Iniciar Sesión])
+        UC_ViewPDF([Descargar PDF de Cotización])
+
+        %% Vendedor
+        UC_CreateQuote([Crear Cotización LCL])
+        UC_EditDraft([Modificar Cotización Borrador])
+        UC_ManageClients([Gestionar Clientes])
+
+        %% Operador
+        UC_UpdateStatus([Actualizar Estado Logístico])
+        UC_WriteLog([Registrar Bitácora de Cambios])
+
+        %% Cliente
+        UC_TrackRealtime([Seguimiento en Tiempo Real])
+
+        %% Administrador
+        UC_ManageUsers([Gestionar Usuarios y Roles])
+        UC_ManageTariffs([Gestionar Tarifario Base])
+        UC_UpdateExchangeRate([Modificar Tipo de Cambio])
+    end
+
+    %% Relaciones de Vendedor
+    Vendedor --> UC_Login
+    Vendedor --> UC_CreateQuote
+    Vendedor --> UC_EditDraft
+    Vendedor --> UC_ManageClients
+    Vendedor --> UC_ViewPDF
+
+    %% Relaciones de Operador
+    Operador --> UC_Login
+    Operador --> UC_UpdateStatus
+    Operador --> UC_WriteLog
+
+    %% Relaciones de Cliente
+    Cliente --> UC_Login
+    Cliente --> UC_TrackRealtime
+    Cliente --> UC_ViewPDF
+
+    %% Relaciones de Administrador (Acceso Completo)
+    Admin --> UC_Login
+    Admin --> UC_ManageUsers
+    Admin --> UC_ManageTariffs
+    Admin --> AdminModQuote[Modificar cualquier Cotización]
+    Admin --> UC_UpdateExchangeRate
+    Admin --> UC_CreateQuote
+    Admin --> UC_EditDraft
+    Admin --> UC_ManageClients
+    Admin --> UC_UpdateStatus
+    Admin --> UC_ViewPDF
+
+    %% Estilos de los nodos
+    classDef actor fill:#f9f0ff,stroke:#d3adf7,stroke-width:2px;
+    classDef usecase fill:#e6f7ff,stroke:#91d5ff,stroke-width:2px;
+    
+    class Admin,Vendedor,Operador,Cliente actor;
+    class UC_Login,UC_ViewPDF,UC_CreateQuote,UC_EditDraft,UC_ManageClients,UC_UpdateStatus,UC_WriteLog,UC_TrackRealtime,UC_ManageUsers,UC_ManageTariffs,UC_UpdateExchangeRate,AdminModQuote usecase;
+        </div>
+    </div>
+</body>
+</html>

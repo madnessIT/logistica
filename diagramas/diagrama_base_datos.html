@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagrama de Entidad-Relación de la Base de Datos — GEMZ</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 30px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #10b981;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        h1 {
+            color: #10b981;
+            margin: 0;
+        }
+        p {
+            color: #666;
+            margin: 5px 0 0 0;
+        }
+        .btn-print {
+            background-color: #003087;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.2s;
+        }
+        .btn-print:hover {
+            background-color: #002060;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: center;
+        }
+        .mermaid {
+            width: 100%;
+            max-width: 1000px;
+        }
+        @media print {
+            body {
+                margin: 0;
+                background-color: #fff;
+            }
+            .header, .btn-print {
+                display: none;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>Diagrama de Entidad-Relación (ERD)</h1>
+            <p>Estructura física de tablas y relaciones de la Base de Datos `gemz_cotizaciones`</p>
+        </div>
+        <button class="btn-print" onclick="window.print()">Imprimir / Guardar como PDF</button>
+    </div>
+    <div class="container">
+        <div class="mermaid">
+erDiagram
+    %% Relaciones principales
+    roles ||--o{ usuarios : "rol_id"
+    usuarios ||--o{ clientes : "vendedor_id (vendedor)"
+    usuarios ||--o{ clientes : "usuario_id (portal)"
+    usuarios ||--o{ tarifario_base : "actualizado_por"
+    usuarios ||--o{ cotizaciones : "vendedor_id"
+    clientes ||--o{ cotizaciones : "cliente_id"
+    cotizaciones ||--|{ detalles_cotizacion : "cotizacion_id (Cascade)"
+    cotizaciones ||--o{ log_estados : "cotizacion_id (Cascade)"
+    usuarios ||--o{ log_estados : "usuario_id"
+    usuarios ||--o{ sesiones : "usuario_id (Cascade)"
+
+    %% Tablas y Atributos
+    roles {
+        tinyint_unsigned id PK "Auto Increment"
+        enum nombre_rol "Administrador, Vendedor, Operador, Cliente"
+        varchar descripcion
+    }
+
+    usuarios {
+        int_unsigned id PK "Auto Increment"
+        tinyint_unsigned rol_id FK
+        varchar nombre
+        varchar email "Unique"
+        varchar password_hash
+        datetime fecha_creacion
+        datetime ultimo_acceso
+        enum estado "activo, inactivo"
+    }
+
+    clientes {
+        int_unsigned id PK "Auto Increment"
+        int_unsigned usuario_id FK "Null (Si tiene acceso a portal)"
+        int_unsigned vendedor_id FK "Vendedor asignado"
+        varchar nombre_razon
+        varchar nit_ci
+        varchar email
+        varchar telefono
+        varchar ciudad
+        datetime fecha_registro
+    }
+
+    tarifario_base {
+        int_unsigned id PK "Auto Increment"
+        varchar concepto_servicio
+        varchar unidad_medida
+        varchar origen
+        varchar destino
+        decimal tarifa_usd
+        enum moneda_cobro "USD, BS"
+        date vigente_desde
+        date vigente_hasta "Null"
+        int_unsigned actualizado_por FK
+        datetime updated_at
+    }
+
+    cotizaciones {
+        int_unsigned id PK "Auto Increment"
+        int_unsigned cliente_id FK
+        int_unsigned vendedor_id FK
+        varchar numero_cotizacion "Unique (COT.GEMZ/AA-XXXX)"
+        date fecha_emision
+        date validez_oferta
+        varchar tipo_carga
+        varchar servicio "LCL, FCL..."
+        varchar origen
+        varchar destino
+        decimal peso_kg
+        decimal volumen_m3
+        decimal wm_aplicado "W/M calculado"
+        decimal valor_mercaderia
+        tinyint tiene_marcas "0 o 1"
+        tinyint viene_paletizado "0 o 1"
+        tinyint es_apilable "0 o 1"
+        decimal total_usd
+        decimal total_bs
+        enum estado "Borrador, Enviada, Aprobada, En Tránsito..."
+        text notas_operacion
+        decimal penalizaciones_usd
+        datetime created_at
+        datetime updated_at
+    }
+
+    detalles_cotizacion {
+        int_unsigned id PK "Auto Increment"
+        int_unsigned cotizacion_id FK
+        tinyint orden
+        varchar concepto
+        decimal cantidad
+        decimal costo_unitario
+        decimal costo_calculado
+        enum moneda "USD, BS"
+        tinyint es_recargo "0 o 1"
+    }
+
+    log_estados {
+        int_unsigned id PK "Auto Increment"
+        int_unsigned cotizacion_id FK
+        int_unsigned usuario_id FK
+        varchar estado_anterior "Null"
+        varchar estado_nuevo
+        text nota "Comentario de cambio de estado"
+        datetime created_at
+    }
+
+    sesiones {
+        char token PK "CHAR(64)"
+        int_unsigned usuario_id FK
+        varchar ip
+        varchar user_agent
+        datetime created_at
+        datetime expires_at
+    }
+
+    configuraciones {
+        varchar clave PK "Clave configuración (ej. tc_usd_bs)"
+        varchar valor
+    }
+        </div>
+    </div>
+</body>
+</html>

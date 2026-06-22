@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagrama de Flujo del Sistema — GEMZ Bolivia SRL</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 30px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #003087;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        h1 {
+            color: #003087;
+            margin: 0;
+        }
+        p {
+            color: #666;
+            margin: 5px 0 0 0;
+        }
+        .btn-print {
+            background-color: #f97316;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.2s;
+        }
+        .btn-print:hover {
+            background-color: #ea580c;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: center;
+        }
+        .mermaid {
+            width: 100%;
+            max-width: 1000px;
+        }
+        @media print {
+            body {
+                margin: 0;
+                background-color: #fff;
+            }
+            .header, .btn-print {
+                display: none;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>Diagrama de Flujo del Sistema</h1>
+            <p>GEMZ Bolivia SRL — Control comercial, operativo y de cálculo</p>
+        </div>
+        <button class="btn-print" onclick="window.print()">Imprimir / Guardar como PDF</button>
+    </div>
+    <div class="container">
+        <div class="mermaid">
+flowchart TD
+    %% Roles de Entrada
+    Start([Inicio de Sesión]) --> Login{Credenciales y Rol}
+    
+    %% Ramificaciones por Rol
+    Login -->|Vendedor| DashboardVendedor[Panel Comercial]
+    Login -->|Operador| DashboardOperador[Panel de Operaciones]
+    Login -->|Cliente| DashboardCliente[Portal de Autogestión]
+    Login -->|Administrador| DashboardAdmin[Panel de Control Total]
+    
+    %% Flujo Comercial (Vendedor / Admin)
+    DashboardVendedor --> FormCot[Formulario de Nueva Cotización]
+    FormCot --> CalcEngine[Motor de Cálculo LCL]
+    
+    %% Motor de Cálculo
+    subgraph MotorCotizacion["Motor de Cálculo LCL (Reglas Logísticas)"]
+        CalcEngine --> WM["Regla W/M (Peso vs Volumen)"]
+        WM --> TariffMatch["Búsqueda Inteligente de Tarifas por Ruta"]
+        TariffMatch --> RuleCheck{"Aplicación de Reglas"}
+        RuleCheck -->|Largo >12 ft| ExLargo["Recargo Extra Largo"]
+        RuleCheck -->|Peso >5000 lbs| OWS["Recargo Sobrepeso (OWS)"]
+        RuleCheck -->|Sin marcas| Manifiesto["Costo Aclaración Manifiesto"]
+        RuleCheck -->|IMO 1, 5, 6, 7| Rechazo["Rechazo de Carga"]
+        RuleCheck -->|Sin Paletizar y >25 kg| Palet["Alerta Paletizaje Obligatorio"]
+    end
+    
+    Rechazo -->|Error| FormCot
+    ExLargo & OWS & Manifiesto & Palet & TariffMatch --> Totales["Cálculo de Totales (USD y Bs)"]
+    
+    Totales --> VerPrevia["Vista Previa de Cotización"]
+    VerPrevia --> GuardarBorrador["Guardar en BD (Estado: Borrador)"]
+    
+    %% Gestión de Borradores
+    GuardarBorrador --> EditCheck{¿Sigue en Borrador?}
+    EditCheck -->|Sí, Vendedor Dueño| Modificar["Permitir Modificación / Recálculo"]
+    Modificar --> GuardarBorrador
+    EditCheck -->|No / Enviada| Bloquear["Bloquear Edición de Datos"]
+    
+    %% Flujo Operativo (Operador / Admin)
+    DashboardOperador --> EmbarqueList["Seguimiento de Embarques Aprobados"]
+    EmbarqueList --> VerDetalle["Detalle de Cotización"]
+    
+    %% Transición de Estados
+    VerDetalle --> UpdateEstado["Actualizar Estado Logístico (api_estado.php)"]
+    UpdateEstado --> LogEst["Registrar en Bitácora (log_estados)"]
+    LogEst --> StatusProgression{"Progresión de Estados"}
+    StatusProgression -->|Borrador| Enviada["Enviada (A la espera de confirmación)"]
+    Enviada --> Aprobada["Aprobada (Listo para logística)"]
+    Aprobada --> EnTransito["En Tránsito (Carga marítima)"]
+    EnTransito --> EnPuerto["En Puerto (Iquique, Chile)"]
+    EnPuerto --> Desconsolidado["Desconsolidado (Separación de carga)"]
+    Desconsolidado --> Finalizada["Finalizada (Carga en destino)"]
+    StatusProgression --> Cancelada["Cancelada (Operación anulada)"]
+    
+    %% Flujo Cliente
+    DashboardCliente --> ViewMyCots["Ver mis Cotizaciones"]
+    ViewMyCots --> TrackRealtime["Seguimiento Logístico en Tiempo Real"]
+    ViewMyCots --> TrackRealtime --> DescargarPDF["Descargar PDF de Cotización"]
+    
+    %% Flujo Administrador (Configuración)
+    DashboardAdmin --> AjustarTarifas["Gestionar Tarifario Base"]
+    DashboardAdmin --> AjustarUsuarios["Gestionar Usuarios y Roles"]
+    DashboardAdmin --> AjustarTC["Modificar Tipo de Cambio (TC)"]
+    AjustarTC --> DBConfig["Actualizar configuraciones en BD"]
+    DBConfig -->|Efecto Global| Totales
+    
+    %% Estilos Visuales
+    classDef roles fill:#f9f0ff,stroke:#d3adf7,stroke-width:2px;
+    classDef process fill:#e6f7ff,stroke:#91d5ff,stroke-width:2px;
+    classDef motor fill:#fff7e6,stroke:#ffd591,stroke-width:2px;
+    classDef success fill:#f6ffed,stroke:#b7eb8f,stroke-width:2px;
+    classDef danger fill:#fff1f0,stroke:#ffa39e,stroke-width:2px;
+    
+    class DashboardVendedor,DashboardOperador,DashboardCliente,DashboardAdmin roles;
+    class FormCot,Totales,VerPrevia,UpdateEstado,DBConfig process;
+    class MotorCotizacion,WM,TariffMatch,RuleCheck motor;
+    class Aprobada,EnTransito,EnPuerto,Desconsolidado,Finalizada success;
+    class Rechazo,Cancelada danger;
+        </div>
+    </div>
+</body>
+</html>

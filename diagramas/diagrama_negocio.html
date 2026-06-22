@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proceso de Importación LCL — Guía para el Cliente</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 30px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f97316;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        h1 {
+            color: #f97316;
+            margin: 0;
+        }
+        p {
+            color: #666;
+            margin: 5px 0 0 0;
+        }
+        .btn-print {
+            background-color: #003087;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.2s;
+        }
+        .btn-print:hover {
+            background-color: #002060;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: center;
+        }
+        .mermaid {
+            width: 100%;
+            max-width: 1000px;
+        }
+        @media print {
+            body {
+                margin: 0;
+                background-color: #fff;
+            }
+            .header, .btn-print {
+                display: none;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>Flujo del Proceso de Importación LCL</h1>
+            <p>Guía paso a paso para el cliente final — GEMZ Bolivia SRL</p>
+        </div>
+        <button class="btn-print" onclick="window.print()">Imprimir / Guardar como PDF</button>
+    </div>
+    <div class="container">
+        <div class="mermaid">
+flowchart TD
+    %% Etapa 1: Solicitud y Cotización
+    Start([1. Solicitud del Cliente]) --> InputCargo["El cliente entrega detalles de la carga:\n• Peso (kg)\n• Volumen (m³)\n• Origen (ej. Shanghai)\n• Destino (ej. Cochabamba)\n• ¿Viene paletizado / marcado?"]
+    
+    InputCargo --> ApplyWM["2. Aplicación de Regla W/M\n(Se cobra según el valor mayor entre\nToneladas de peso o m³ de volumen)"]
+    
+    ApplyWM --> CalcQuote["3. Emisión de Cotización\n• Flete Marítimo (USD)\n• Cargos de Puerto (USD)\n• Servicios Locales Bolivia (Bs)\n• Flete Terrestre a Bolivia (Bs)"]
+    
+    %% Etapa 2: Aprobación y Embarque
+    CalcQuote --> ClientApprove{"¿Cliente Aprueba?"}
+    ClientApprove -->|No| EndCancel([Fin / Cotización Cancelada])
+    ClientApprove -->|Sí| ShipBooking["4. Reserva de Espacio (Booking)\ny Embarque en Puerto de Origen"]
+    
+    %% Etapa 3: Tránsito Marítimo
+    ShipBooking --> OceanTransit["5. Tránsito Marítimo Internacional\n(Tránsito aproximado: 51 a 60 días\ndesde Asia hasta Iquique, Chile)"]
+    
+    %% Etapa 4: Puerto de Entrada (Iquique)
+    OceanTransit --> ArrivePort["6. Arribo al Puerto de Iquique\ny Apertura de Contenedor (Desconsolidación)"]
+    
+    ArrivePort --> CheckPallet{"¿Carga >25 kg\nviene sin paletizar?\n(Ley 20001 Chile)"}
+    CheckPallet -->|Sí| ChargePallet["Cobro de Paletizaje\nObligatorio en Puerto"]
+    CheckPallet -->|No| CheckMarks
+    
+    ChargePallet --> CheckMarks{"¿Carga viene\nsin marcas de origen?"}
+    CheckMarks -->|Sí| ChargeMarks["Multa de USD 300\npor Aclaración de Manifiesto\n(Aduana / Puerto)"]
+    CheckMarks -->|No| LandTransit
+    
+    %% Etapa 5: Tránsito Terrestre y Entrega
+    ChargeMarks --> LandTransit["7. Tránsito Terrestre Internacional\n(Transporte en camiones desde\nIquique hasta Aduana en Bolivia)"]
+    
+    LandTransit --> CustomsBolivia["8. Llegada a Aduana Bolivia\ny Desaduanamiento de Mercancía"]
+    
+    CustomsBolivia --> PaymentDoc["9. Pago contra entrega de documentos\n(Cliente cancela flete y servicios)"]
+    
+    PaymentDoc --> DeliveryCargo["10. Entrega de Carga en Almacén\n(Entrega exitosa de mercancía)"]
+    
+    DeliveryCargo --> EndSuccess([¡Carga Entregada!])
+
+    %% Estilos de las cajas
+    classDef startEnd fill:#f9f0ff,stroke:#d3adf7,stroke-width:2px;
+    classDef step fill:#e6f7ff,stroke:#91d5ff,stroke-width:2px;
+    classDef check fill:#fff7e6,stroke:#ffd591,stroke-width:2px;
+    classDef charge fill:#fff1f0,stroke:#ffa39e,stroke-width:2px;
+    
+    class Start,EndCancel,EndSuccess startEnd;
+    class InputCargo,ApplyWM,CalcQuote,ShipBooking,OceanTransit,LandTransit,CustomsBolivia,PaymentDoc,DeliveryCargo step;
+    class ClientApprove,CheckPallet,CheckMarks check;
+    class ChargePallet,ChargeMarks charge;
+        </div>
+    </div>
+</body>
+</html>
