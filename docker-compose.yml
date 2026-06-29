@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gemz_sistema_web
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+    restart: unless-stopped
+
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: gemz_sistema_pma
+    environment:
+      - PMA_ARBITRARY=1
+    ports:
+      - "8081:80"
+    restart: unless-stopped
